@@ -95,3 +95,83 @@
 - [[tcp_socket_basics]]
 - [[socket_fd]]
 - [[step_01_tcp_server]]
+
+---
+
+## [2026-07-02] - 里程碑 02：HTTP 协议解析
+
+### 本次目标
+- 实现 HTTP 请求解析，根据路径返回不同响应
+- 回复符合 HTTP 格式的响应报文
+
+### 重点记录
+- 手写 `parse_path()` 函数，从 `"GET /path HTTP/1.1"` 中提取路径
+- 使用 `sprintf()` 拼接 HTTP 响应字符串（状态行 + 头部 + 空行 + 体）
+- 引入 `while(1)` 循环，服务器不再处理完一个请求就退出
+- 封装了 `send_404()` 函数
+- curl 测试全部通过，不再报 `HTTP/0.9` 错误
+
+### 验证结果
+| 路径 | 状态码 | 响应体 |
+|------|--------|--------|
+| `/` | `200 OK` | hello,world |
+| `/about` | `404 Not Found` | HTML 404 页面 |
+| `/nonexist` | `404 Not Found` | HTML 404 页面 |
+
+### 待改进
+- 函数名 `prase_path` 拼写错误（应为 `parse_path`）
+- `bytes_read` 变量未使用
+- `addr_len` 建议每次循环重置
+
+### 关键技术点
+- HTTP 报文格式：请求行/状态行 → 头部 → 空行 → 体
+- `Content-Length` 头必须精确匹配响应体字节数
+- 不同状态码对应不同语义（200/404）
+
+### 下一步
+- 开始里程碑 03：静态文件服务 — 从磁盘读取文件，自动设置 Content-Type，实现完整的静态 Web 服务器
+
+### 关联页面
+- [[index]]
+- [[http_protocol]]
+
+---
+
+## [2026-07-02] - 里程碑 03：静态文件服务
+
+### 本次目标
+- 从磁盘读取文件，通过 HTTP 返回，实现完整的静态 Web 服务器
+
+### 重点记录
+- 实现了 `get_mime_type()` — 根据文件扩展名返回 Content-Type
+- 实现了文件 I/O 流程：`fopen` → `fseek`/`ftell`(算大小) → `fread` → `fclose`
+- **重要认识**：文件是二进制数据，HTTP 头部和响应体必须分开 `send`
+- 响应体用 `malloc`/`fread` 读取，用 `send` 单独发送（不是拼在 `sprintf` 里）
+
+### 自检修正的 Bug
+1. `close(content)` 改为 `free(content)` — close 是关文件描述符，free 才是释放内存
+2. 释放时机移到 send 之后 — use-after-free
+3. `get_mime_type` 返回值加 `const`
+4. 增加 `path == NULL` 的保护判断
+
+### 验证结果
+| 请求 | 状态码 | Content-Type | 结果 |
+|------|--------|-------------|------|
+| `/index.html` | 200 | text/html | ✅ |
+| `/about.html` | 200 | text/html | ✅ |
+| `/style.css` | 200 | text/css | ✅ |
+| `/nonexist.html` | 404 | text/html | ✅ |
+
+### 关键技术点
+- 二进制文件必须用 `"rb"` 模式打开
+- `Content-Length` 必须是精确的字节数（`ftell` 获取）
+- 头部用 `snprintf` 拼成字符串，体用 `send` 直接发二进制数据
+- `strrchr` 定位文件扩展名，`strcasecmp` 做大小写无关比较
+
+### 下一步
+- 开始里程碑 04：线程池 — 解决单线程服务器"一次只能服务一个客户端"的问题
+
+### 关联页面
+- [[index]]
+- [[file_io]]
+- [[http_protocol]]

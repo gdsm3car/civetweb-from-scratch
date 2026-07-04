@@ -54,6 +54,8 @@
 | 页面 | 概述 | 状态 |
 |------|------|------|
 | [[tcp_socket_basics]] | TCP Socket 编程模型 — socket/bind/listen/accept/recv/send | ✅ |
+| [[http_protocol]] | HTTP 协议 — 请求/响应报文格式、状态码、Content-Type | ⏳ |
+| [[file_io]] | 文件 I/O — fopen/fread/fseek/fclose、二进制读写 | ⏳ |
 | — | 更多随学习进度创建 | ⏳ |
 
 ## 📋 当前学习进度
@@ -63,7 +65,10 @@
 | 项目结构初始化 | ✅ 完成 |
 | 里程碑 0：编译 CivetWeb | ✅ 完成 |
 | 里程碑 1：TCP socket 基础 | ✅ 完成 |
-| 里程碑 2：HTTP 协议解析 | ⏳ 下一节 |
+| 里程碑 2：HTTP 协议解析 | ✅ 完成 |
+| 里程碑 3：静态文件服务 | ✅ 完成 |
+| 里程碑 4：多线程并发 | ⏳ 下一节 |
+| 里程碑 5：回调机制 | ⏳ |
 | 里程碑 2：HTTP 协议解析 | ⏳ |
 | 里程碑 3：静态文件服务 | ⏳ |
 | ... | ... |
