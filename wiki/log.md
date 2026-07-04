@@ -175,3 +175,41 @@
 - [[index]]
 - [[file_io]]
 - [[http_protocol]]
+
+---
+
+## [2026-07-04] - 里程碑 04：线程池
+
+### 本次目标
+- 引入 pthread 线程池，解决单线程服务器阻塞问题
+
+### 重点记录
+- 实现了 4 线程的线程池，主线程只负责 accept 和派发
+- 使用 `pthread_mutex_t` 保护任务队列的并发访问
+- 使用 `pthread_cond_t` 实现任务通知（无任务时线程休眠）
+- 用 `#define` 代替 `const int` 定义数组大小（C 语言限制）
+
+### 并发对比测试结果
+
+| 场景 | step 03（单线程） | step 04（线程池） |
+|------|------------------|-----------------|
+| 慢客户端阻塞时并发请求 | 4.47s ❌ | 0.001s ✅ |
+
+### 自检修正的问题
+1. `const int` 不能用作 C 语言数组长度 → 改为 `#define`
+2. `worker` 函数 `arg` 参数未使用 → 添加 `(void)arg` 消警告
+
+### 关键技术点
+- `pthread_create` / `pthread_mutex_lock` / `pthread_cond_wait` 的使用
+- 条件变量必须和互斥锁配合使用
+- `while` 而非 `if` 判断条件（防止虚假唤醒）
+- 编译时加 `-lpthread` 链接线程库
+- 任务队列暂无敌保护检查（后续可优化）
+
+### 下一步
+- 开始里程碑 05：回调机制 — 模仿 CivetWeb 的 mg_callbacks，让用户注册 handler
+
+### 关联页面
+- [[index]]
+- [[thread_pool]]
+- [[pthread_basics]]
