@@ -213,3 +213,54 @@
 - [[index]]
 - [[thread_pool]]
 - [[pthread_basics]]
+
+---
+
+## [2026-07-04] - 里程碑 05：回调机制
+
+### 本次目标
+- 模仿 CivetWeb 的 mg_callbacks，设计可注册的请求处理函数
+
+### 重点记录
+- 定义了回调核心类型：`request_handler`（函数指针类型）
+- 实现了 `struct mg_context` 服务器上下文，统一管理回调表
+- 实现了 `mg_set_request_handler()` 注册接口
+- 用 `serve_static_file()` 抽取默认处理逻辑，与回调分离
+- 添加了两个示例回调：`/api/hello` → JSON, `/api/echo` → plain text
+
+### 代码结构变化
+```
+里程碑 04：                         里程碑 05：
+main() {                           main() {
+    socket/bind/listen                  // 先注册回调
+    while(1) accept → 队列              mg_set_request_handler("/api/hello", ...)
+    ↑ 所有逻辑写死在 worker 里          mg_set_request_handler("/api/echo", ...)
+}                                       socket/bind/listen
+                                    }
+                                    worker() → 先查回调表
+                                                → 有匹配 → 调用回调
+                                                → 不匹配 → serve_static_file()
+```
+
+### 验证结果
+| 请求 | 处理方式 | 状态码 | 结果 |
+|------|---------|--------|------|
+| `/api/hello` | 回调 | 200 | `{"message":"hello"}` ✅ |
+| `/api/echo` | 回调 | 200 | "echo" ✅ |
+| `/index.html` | 静态文件兜底 | 200 | HTML ✅ |
+| `/notfound` | 静态文件兜底 | 404 | 404 页 ✅ |
+
+### 关键技术点：函数指针
+```c
+typedef int (*request_handler)(struct mg_connection *conn, void *user_data);
+//        ↑ 返回值  ↑ 参数列表                      ↑ 参数名
+// 这个类型表示"指向一个函数的指针，该函数接收 conn 和 user_data，返回 int"
+```
+
+### 下一步
+- 开始里程碑 06：HTTPS/TLS — 集成 OpenSSL，实现加密通信
+
+### 关联页面
+- [[index]]
+- [[callback_design]]
+- [[function_pointer]]
