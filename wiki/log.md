@@ -264,3 +264,46 @@ typedef int (*request_handler)(struct mg_connection *conn, void *user_data);
 - [[index]]
 - [[callback_design]]
 - [[function_pointer]]
+
+---
+
+## [2026-07-05] - 里程碑 06：HTTPS/TLS
+
+### 本次目标
+- 集成 OpenSSL，实现 HTTPS 加密通信
+- 同时支持 HTTP（9090）和 HTTPS（9443）双端口
+
+### 重点记录
+- 安装了 `libssl-dev` OpenSSL 开发库
+- 生成了自签名证书（`cert.pem` + `key.pem`）
+- 修改了代码架构：
+  - `struct mg_connection` 新增 `SSL *ssl` 字段，区分 HTTP/HTTPS
+  - `read_request()` / `write_response()` 统一封装，自动识别加密通道
+  - 任务队列改用 `struct task` 携带 SSL 对象
+  - 新增 `accept_loop()` 线程化，同时监听两个端口
+- 代码改动集中在传输层，HTTP 解析、回调、静态文件**完全不变**
+
+### 验证结果
+| 测试 | 命令 | 结果 |
+|------|------|------|
+| HTTP 静态文件 | `curl http://localhost:9090/index.html` | ✅ |
+| HTTPS 静态文件 | `curl -sk https://localhost:9443/index.html` | ✅ |
+| HTTPS 回调 | `curl -sk https://localhost:9443/api/hello` | ✅ |
+| HTTPS 404 | `curl -sk https://localhost:9443/nonexist` | ✅ |
+| 加密详情 | TLSv1.3 / TLS_AES_256_GCM_SHA384 | ✅ |
+
+### 关键技术点
+- TLS 握手流程：ClientHello → ServerHello + Certificate → 密钥协商
+- 非对称加密交换对称密钥 → 后续用对称加密（兼顾安全与性能）
+- `SSL_read/SSL_write` 代替 `recv/send`，上层逻辑不受影响
+- `SSL_new()` 在每个连接上创建，`SSL_CTX` 全局共享
+- 编译时链接 `-lssl -lcrypto`
+- 自签名证书用 `-k` 参数忽略验证
+
+### 下一步
+- 开始里程碑 07：WebSocket — 实现全双工通信
+
+### 关联页面
+- [[index]]
+- [[tls_ssl]]
+- [[openssl_basics]]
