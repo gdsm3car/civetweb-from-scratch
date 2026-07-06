@@ -307,3 +307,39 @@ typedef int (*request_handler)(struct mg_connection *conn, void *user_data);
 - [[index]]
 - [[tls_ssl]]
 - [[openssl_basics]]
+
+---
+
+## [2026-07-06] - 里程碑 07：WebSocket
+
+### 本次目标
+- 实现 WebSocket 握手与帧通信
+- 支持 Echo 回显功能
+
+### 重点记录
+- 实现了 `get_header_value()` — 从 HTTP 请求头中提取指定头字段
+- 实现了 `handle_websocket_upgrade()` — 检测 Upgrade: websocket，计算 Sec-WebSocket-Accept（SHA1+Base64），返回 101
+- 实现了 `read_websocket_frame()` — 解析 WebSocket 数据帧（opcode、MASK、扩展长度 126/127、掩码解码）
+- 实现了 `send_websocket_frame()` — 发送帧（支持小/中/大三种长度编码）
+- 实现了 `base64_encode()` — Base64 编码函数（用于 Accept 值计算）
+- 新增 `/echo` 路径的 WebSocket echo 服务
+
+### 关键技术点
+- **握手**：`Sec-WebSocket-Accept = Base64(SHA1(key + "258EAFA5-E914-47DA-95CA-5AB9DC11B85B"))`
+- **帧格式**：首字节 FIN+opcode，次字节 MASK+length，长度超过 125 用扩展字节，客户端帧必须掩码
+- **掩码**：客户端用 4 字节掩码 XOR 每个 payload 字节，服务器端收到后同样方式解码
+- **服务器帧**：不设置 MASK 位，不需要掩码
+
+### 验证结果
+```
+握手: HTTP/1.1 101 Switching Protocols ✅
+发送: "Hello WebSocket!"               ✅
+回显: "Hello WebSocket!"               ✅
+```
+
+### 下一步
+- 开始里程碑 08：进阶功能 — 路由前缀匹配、CGI、路径穿越防护等
+
+### 关联页面
+- [[index]]
+- [[websocket_protocol]]

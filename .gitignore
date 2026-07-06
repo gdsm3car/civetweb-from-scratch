@@ -2,3 +2,4 @@ raw/
 *.o
 server
 out/
+*.pem
